@@ -122,6 +122,54 @@ class ExaSearchTests(unittest.TestCase):
             self.assertEqual(0, artifact["resultCount"])
 
 
+class ParallelSearchTests(unittest.TestCase):
+    def test_parallel_search_filters_to_in_range_dated_items(self):
+        mock_response = {
+            "results": [
+                {
+                    "title": "Parallel Result",
+                    "url": "https://example.com/parallel",
+                    "snippet": "A parallel snippet",
+                    "publish_date": "2026-03-15T00:00:00Z",
+                },
+                {
+                    "title": "Old Parallel Result",
+                    "url": "https://example.com/old-parallel",
+                    "snippet": "Should be filtered",
+                    "publish_date": "2025-12-01T00:00:00Z",
+                },
+                {
+                    "title": "Undated Parallel Result",
+                    "url": "https://example.com/undated-parallel",
+                    "snippet": "Should also be filtered",
+                },
+            ]
+        }
+        with patch("lib.grounding.http.request", return_value=mock_response) as mock_req:
+            items, artifact = grounding.parallel_search(
+                "test", ("2026-02-25", "2026-03-27"), "fake-parallel-key"
+            )
+            self.assertEqual(1, len(items))
+            self.assertEqual("Parallel Result", items[0]["title"])
+            self.assertEqual("https://example.com/parallel", items[0]["url"])
+            self.assertEqual("2026-03-15", items[0]["date"])
+            self.assertTrue(items[0]["id"].startswith("WP"))
+            self.assertEqual("parallel", artifact["label"])
+            self.assertEqual(1, artifact["resultCount"])
+            self.assertEqual("POST", mock_req.call_args.args[0])
+            self.assertEqual("https://api.parallel.ai/v1/search", mock_req.call_args.args[1])
+            self.assertEqual(
+                "Bearer fake-parallel-key",
+                mock_req.call_args.kwargs["headers"]["Authorization"],
+            )
+
+    def test_parallel_search_returns_empty_for_no_results(self):
+        with patch("lib.grounding.http.request", return_value={"results": []}):
+            items, artifact = grounding.parallel_search("test", ("2026-02-25", "2026-03-27"), "key")
+            self.assertEqual([], items)
+            self.assertEqual(0, artifact["resultCount"])
+
+
 class WebSearchDispatchTests(unittest.TestCase):
     def test_auto_selects_brave_when_key_present(self):
         config = {"BRAVE_API_KEY": "test-key"}
@@ -138,6 +186,12 @@ class WebSearchDispatchTests(unittest.TestCase):
     def test_auto_selects_serper_when_only_serper_key(self):
         config = {"SERPER_API_KEY": "test-key"}
         with patch("lib.grounding.serper_search", return_value=([], {})) as mock:
+            grounding.web_search("test", ("2026-02-25", "2026-03-27"), config, backend="auto")
+            mock.assert_called_once()
+
+    def test_auto_selects_parallel_when_only_parallel_key(self):
+        config = {"PARALLEL_API_KEY": "test-key"}
+        with patch("lib.grounding.parallel_search", return_value=([], {})) as mock:
             grounding.web_search("test", ("2026-02-25", "2026-03-27"), config, backend="auto")
             mock.assert_called_once()
 
@@ -167,6 +221,14 @@ class WebSearchDispatchTests(unittest.TestCase):
             mock_exa.assert_called_once()
             mock_serper.assert_not_called()
 
+    def test_auto_prefers_serper_over_parallel(self):
+        config = {"SERPER_API_KEY": "serper-key", "PARALLEL_API_KEY": "parallel-key"}
+        with patch("lib.grounding.serper_search", return_value=([], {})) as mock_serper, \
+             patch("lib.grounding.parallel_search", return_value=([], {})) as mock_parallel:
+            grounding.web_search("test", ("2026-02-25", "2026-03-27"), config, backend="auto")
+            mock_serper.assert_called_once()
+            mock_parallel.assert_not_called()
+
     def test_auto_prefers_brave_when_all_keys_present(self):
         config = {"BRAVE_API_KEY": "brave-key", "EXA_API_KEY": "exa-key", "SERPER_API_KEY": "serper-key"}
         with patch("lib.grounding.brave_search", return_value=([], {})) as mock_brave, \
@@ -184,6 +246,10 @@ class WebSearchDispatchTests(unittest.TestCase):
     def test_explicit_brave_without_key_raises(self):
         with self.assertRaises(RuntimeError):
             grounding.web_search("test", ("2026-02-25", "2026-03-27"), {}, backend="brave")
+
+    def test_explicit_parallel_without_key_raises(self):
+        with self.assertRaises(RuntimeError):
+            grounding.web_search("test", ("2026-02-25", "2026-03-27"), {}, backend="parallel")
 
     def test_unsupported_backend_raises(self):
         with self.assertRaises(ValueError):
