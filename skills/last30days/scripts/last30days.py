@@ -94,8 +94,6 @@ def parse_as_of_date_arg(value: str) -> str:
         parsed = dates.parse_as_of_date(value)
     except ValueError as exc:
         raise argparse.ArgumentTypeError(str(exc)) from exc
-    if parsed is None:
-        raise argparse.ArgumentTypeError("--as-of must be in YYYY-MM-DD format.")
     return parsed
 
 def slugify(value: str) -> str:
@@ -278,14 +276,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Number of days to look back for research (default: 30, watchlist uses 90)",
     )
     parser.add_argument(
-    "--as-of",
-    dest="as_of_date",
-    type=parse_as_of_date_arg,
-    help=(
-        "End date for the lookback window in YYYY-MM-DD format. "
-        "When set, --days looks back from this date instead of today."
-    ),
-)
+        "--as-of",
+        dest="as_of_date",
+        type=parse_as_of_date_arg,
+        help=(
+            "End date for the lookback window in YYYY-MM-DD format. "
+            "When set, --days looks back from this date instead of today."
+            ),
+    )
     parser.add_argument("--auto-resolve", action="store_true",
                         help="Use web search to discover subreddits/handles before planning (for platforms without WebSearch)")
     parser.add_argument("--github-user", help="GitHub username for person-mode search (e.g., steipete)")

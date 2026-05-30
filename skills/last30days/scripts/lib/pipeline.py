@@ -514,7 +514,17 @@ def _normalize_score_dedupe(
         freshness_mode=freshness_mode,
     )
     prepared_query = relevance.PreparedQuery(ranking_query)
-    normalized = signals.annotate_stream(normalized, prepared_query, freshness_mode)
+    lookback_window_days = (
+        datetime.strptime(to_date, "%Y-%m-%d").date()
+        - datetime.strptime(from_date, "%Y-%m-%d").date()
+    ).days
+    normalized = signals.annotate_stream(
+        normalized,
+        prepared_query,
+        freshness_mode,
+        reference_date=to_date,
+        max_days=lookback_window_days,
+    )
     normalized = signals.prune_low_relevance(normalized)
     normalized = dedupe.dedupe_items(normalized)
     for item in normalized:

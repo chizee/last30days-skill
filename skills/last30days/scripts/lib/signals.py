@@ -65,10 +65,10 @@ def freshness(
     max_days: int = 30,
 ) -> int:
     score = dates.recency_score(
-    item.published_at,
-    max_days=max_days,
-    reference_date=reference_date,
-)
+        item.published_at,
+        max_days=max_days,
+        reference_date=reference_date,
+    )
     if freshness_mode == "strict_recent":
         return int(score)
     if freshness_mode == "evergreen_ok":

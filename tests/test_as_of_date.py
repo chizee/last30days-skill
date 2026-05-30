@@ -92,6 +92,22 @@ class AsOfDateTests(unittest.TestCase):
         self.assertNotEqual(0, result.returncode)
         self.assertIn("YYYY-MM-DD", result.stderr)
 
+    def test_days_ago_uses_reference_date(self):
+        self.assertEqual(
+            5,
+            dates.days_ago("2020-05-20", reference_date="2020-05-25"),
+        )
+
+    def test_recency_score_uses_reference_date(self):
+        self.assertEqual(
+            50,
+            dates.recency_score(
+                "2020-05-20",
+                max_days=10,
+                reference_date="2020-05-25",
+            ),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

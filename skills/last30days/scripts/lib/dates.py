@@ -126,9 +126,10 @@ def get_date_confidence(date_str: Optional[str], from_date: str, to_date: str) -
         return 'low'
 
 
-def days_ago(date_str: Optional[str]) -> Optional[int]:
-    """Calculate how many days ago a date is.
+def days_ago(date_str: Optional[str], reference_date: Optional[str] = None) -> Optional[int]:
+    """Calculate how many days before the reference date a date is.
 
+    If reference_date is None, use real today for backward compatibility.
     Returns None if date is invalid or missing.
     """
     if not date_str:
@@ -136,24 +137,32 @@ def days_ago(date_str: Optional[str]) -> Optional[int]:
 
     try:
         dt = datetime.strptime(date_str, "%Y-%m-%d").date()
-        today = datetime.now(timezone.utc).date()
+        if reference_date:
+            today = datetime.strptime(reference_date, "%Y-%m-%d").date()
+        else:
+            today = datetime.now(timezone.utc).date()
         delta = today - dt
         return delta.days
     except ValueError:
         return None
 
 
-def recency_score(date_str: Optional[str], max_days: int = 30) -> int:
+def recency_score(
+    date_str: Optional[str],
+    max_days: int = 30,
+    reference_date: Optional[str] = None,
+) -> int:
     """Calculate recency score (0-100).
 
-    0 days ago = 100, max_days ago = 0, clamped.
+    0 days before reference_date = 100, max_days before reference_date = 0.
+    If reference_date is None, use real today for backward compatibility.
     """
-    age = days_ago(date_str)
+    age = days_ago(date_str, reference_date=reference_date)
     if age is None:
-        return 0  # Unknown date gets worst score
+        return 0
 
     if age < 0:
-        return 100  # Future date (treat as today)
+        return 100
     if age >= max_days:
         return 0
 
