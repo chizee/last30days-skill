@@ -407,6 +407,10 @@ def get_config() -> dict[str, Any]:
         ('EXCLUDE_SOURCES', ''),
         ('LAST30DAYS_YOUTUBE_SSH_HOST', None),
         ('LAST30DAYS_TRANSCRIPT_TIMEOUT', None),
+        # Whisper transcription provider for caption-free audio/video. Groq's
+        # free tier is preferred; OPENAI_API_KEY is the paid backstop (already
+        # resolved above via openai_auth).
+        ('GROQ_API_KEY', None),
     ]
 
     for key, default in keys:
@@ -663,6 +667,20 @@ def keyless_web_allowed(config: dict[str, Any]) -> bool:
     falls to keyless on empty/error for non-native runs).
     """
     return not is_native_search(config)
+
+
+def transcription_providers(config: dict[str, Any]) -> list[tuple[str, str]]:
+    """Ordered (name, api_key) Whisper providers for caption-free transcription.
+
+    Groq (free tier) first, OpenAI (paid) as the backstop. Empty when neither
+    key is set, in which case transcription degrades rather than runs.
+    """
+    providers: list[tuple[str, str]] = []
+    if config.get('GROQ_API_KEY'):
+        providers.append(('groq', config['GROQ_API_KEY']))
+    if config.get('OPENAI_API_KEY'):
+        providers.append(('openai', config['OPENAI_API_KEY']))
+    return providers
 
 
 def is_bluesky_available(config: dict[str, Any]) -> bool:
