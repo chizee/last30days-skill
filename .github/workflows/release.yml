@@ -10,14 +10,18 @@ permissions:
   id-token: write
   attestations: write
 
+
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Build .skill artifact
         run: |
@@ -30,9 +34,10 @@ jobs:
           subject-path: dist/last30days.skill
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/last30days.skill
-          generate_release_notes: true
-          draft: false
-          prerelease: false
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            dist/last30days.skill \
+            --generate-notes \
+            --verify-tag
