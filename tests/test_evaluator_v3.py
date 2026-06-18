@@ -1,3 +1,5 @@
+import contextlib
+import io
 import json
 import os
 import tempfile
@@ -162,17 +164,21 @@ class EvaluatorV3Tests(unittest.TestCase):
             )
             # Same slug, different model, no API key to re-judge: the stale
             # grades must NOT come back — an empty result signals "re-judge
-            # needed" rather than silently wrong numbers.
-            result = evaluator.get_judgments(
-                output_dir=output_dir,
-                slug="topic",
-                topic="test topic",
-                query_type="general",
-                items=[{"key": "a"}],
-                judge_model="gemini-2.5-pro",
-                gemini_api_key=None,
-            )
+            # needed" rather than silently wrong numbers, and the discard is
+            # announced on stderr instead of failing silently.
+            stderr = io.StringIO()
+            with contextlib.redirect_stderr(stderr):
+                result = evaluator.get_judgments(
+                    output_dir=output_dir,
+                    slug="topic",
+                    topic="test topic",
+                    query_type="general",
+                    items=[{"key": "a"}],
+                    judge_model="gemini-2.5-pro",
+                    gemini_api_key=None,
+                )
             self.assertEqual({}, result)
+            self.assertIn("different", stderr.getvalue())
 
     def test_create_eval_env_and_run_last30days(self):
         credential_env = {
