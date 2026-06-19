@@ -340,8 +340,9 @@ The engine reads `LAST30DAYS_MEMORY_DIR` from either the process env or `~/.conf
 Before proceeding to Step 1, handle first-run setup.
 
 **First-run detection (silent, no commands, no output to user):**
-- If `~/.config/last30days/.env` does NOT exist, this is a first run.
-- If the file exists and contains `SETUP_COMPLETE=true`, skip Step 0 entirely and go to Step 1 (CRITICAL: Parse User Intent below). Do NOT announce that setup is complete. The user does not need a status message on every run.
+- If `SETUP_COMPLETE=true` is available from process env, project config (`.claude/last30days.env`), global config (`~/.config/last30days/.env`), or the setup check reports configured credentials, skip Step 0 entirely and go to Step 1 (CRITICAL: Parse User Intent below). Do NOT announce that setup is complete. The user does not need a status message on every run.
+- Do NOT treat the absence of `~/.config/last30days/.env` alone as a first run. Credentials may live in process env, project config, macOS Keychain (`last30days-<KEY>`), pass(1), or host-provided auth.
+- If no setup marker or credential source is present, this is a first run.
 
 **If this IS a first run:**
 - Run `python3 skills/last30days/scripts/last30days.py setup` (relative to the skill root) to launch the setup wizard.
