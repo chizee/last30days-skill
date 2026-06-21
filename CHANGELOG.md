@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.7.1] - 2026-06-21
+
 ### Fixed
 
-- GitHub repo stars are no longer mislabeled as "reactions" in the report footer. Repo cards now use a distinct `stars` engagement key, velocity cards use `merged_prs`, and genuine issue/PR reaction counts keep their own `reactions` key, so the footer displays the correct label per item type ([#642](https://github.com/mvanhorn/last30days-skill/issues/642))
+- GitHub repo stars are no longer mislabeled as "reactions" in the report footer. Repo cards use a distinct `stars` engagement key, velocity cards use `merged_prs`, and genuine issue/PR reaction counts keep their own `reactions` key. (#645, closes #642)
+- Hacker News returned zero stories on every run: the Algolia query sent `points>2`, which the HN index no longer accepts as a filterable attribute, so every request 400'd. Dropped the server-side `points` filter; low-engagement demotion still happens at parse time. (#639)
+- Polymarket surfaced off-topic markets and rendered a mangled footer. The relevance filter was fed the per-subquery string instead of the stable topic, and market labels were truncated mid-article into fragments like "an Anthropic Claude model score at: an 19%". Now filters on the stable topic and cleans the labels. (#640)
 
 ## [3.7.0] - 2026-06-20
 
