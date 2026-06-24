@@ -207,6 +207,7 @@ def diagnose(
     endpoint_override_keys = {
         "BSKY_SEARCH_HOST",
         "LAST30DAYS_SEARXNG_URL",
+        "LAST30DAYS_YOUTUBE_SSH_HOST",
         "OPENAI_BASE_URL",
         "XAI_BASE_URL",
         "XIAOHONGSHU_API_BASE",
