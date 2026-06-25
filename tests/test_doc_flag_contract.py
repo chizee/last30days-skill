@@ -29,6 +29,30 @@ def test_configuration_documents_new_safety_flags():
     assert "--preflight" in text
     assert "--save-dir" in text
     assert "--output" in text
+    assert "--publish-html" in flags
+    assert "--publish-html" in text
+    assert "--publish-password" in flags
+    assert "--publish-password" in text
+    assert "LAST30DAYS_PUBLISH_PASSWORD" in text
+
+
+def test_html_publish_reference_prompts_for_password_choice():
+    text = HTML_REFERENCE.read_text(encoding="utf-8")
+    publish_section = text[text.index("## Optional hosted publishing"):text.index("## What ends up in the HTML file")]
+    assert "Respect any existing user, project, or host preference for HTML publishing first" in publish_section
+    assert "If multiple publishing options are available, show each as its own choice" in publish_section
+    assert "label `ht-ml.app` as supporting optional password protection" in publish_section
+    assert "Show the absolute saved path" in publish_section
+    assert "Open HTML file" in publish_section
+    assert "Done for now" in publish_section
+    assert "Do not upload until the user chooses a publishing option" in publish_section
+    assert "ask a second question" in publish_section
+    assert "**Public link** - publish without a password" in publish_section
+    assert "**Password-protected link** - ask the user to type the shared password" in publish_section
+    assert "repeat the shared password they selected" in publish_section
+    assert "LAST30DAYS_PUBLISH_PASSWORD" in publish_section
+    assert '--output "$HTML_PATH"' in publish_section
+    assert "<HTML_PATH>.publish.json" in publish_section
 
 
 def test_reddit_backend_env_var_is_documented_for_users_and_runtime_skill():
