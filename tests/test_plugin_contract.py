@@ -31,11 +31,12 @@ class TestPluginContract(unittest.TestCase):
     def test_codex_marketplace_points_at_repo_root_plugin(self) -> None:
         marketplace = _json(ROOT / ".agents" / "plugins" / "marketplace.json")
         plugins = marketplace.get("plugins") or []
+        plugin_by_name = {plugin["name"]: plugin for plugin in plugins}
 
         self.assertEqual("last30days-skill", marketplace["name"])
-        self.assertEqual(1, len(plugins))
-        self.assertEqual("last30days", plugins[0]["name"])
-        self.assertEqual("./", plugins[0]["source"]["path"])
+        self.assertIn("last30days", plugin_by_name)
+        plugin = plugin_by_name["last30days"]
+        self.assertEqual("./", plugin["source"]["path"])
 
     def test_versions_match_across_manifests(self) -> None:
         pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))

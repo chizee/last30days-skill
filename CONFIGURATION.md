@@ -370,6 +370,12 @@ The schedule field stored on each topic is metadata - the actual cron / Task Sch
 
 The skill is built to flex around different client environments. Four patterns that compose well:
 
+**Codex note:** the repository includes `.codex-plugin/plugin.json` so Codex can treat the existing
+`skills/last30days/SKILL.md` tree as plugin metadata without maintaining a separate Codex copy.
+The supported Codex install path remains the Agent Skills install command documented in the README;
+native Codex plugin marketplace installation should only be documented once root-repository plugin
+sources are supported by the released Codex CLI.
+
 ### 1. Trusted per-client `.claude/last30days.env`
 
 When each client has its own working directory, drop a `.claude/last30days.env` into the client folder and opt in with `LAST30DAYS_TRUST_PROJECT_CONFIG=1` from your shell or global `~/.config/last30days/.env`. The skill loads the project file only after that trust signal. Typical contents:
