@@ -186,6 +186,13 @@ to disk, never logged). Both are **lowest-priority and additive** — an explici
 sources, so a box that merely has `pass` installed pays no decrypt cost when
 everything is already in `.env`.
 
+Effective credential priority is: process env > trusted project config
+(`.claude/last30days.env`) > global config (`~/.config/last30days/.env`) >
+macOS Keychain > `pass`(1). The SessionStart status hook also checks for
+Keychain item **presence** under `last30days-<KEY>` without reading secret
+values, so a Keychain-only setup is treated as configured instead of showing the
+first-run welcome again.
+
 | Platform | Source | Store keys with | Lookup convention |
 |---|---|---|---|
 | macOS | Keychain | `scripts/setup-keychain.sh` | service name `last30days-<KEY>` |
