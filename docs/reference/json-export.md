@@ -37,15 +37,20 @@ When `LAST30DAYS_API_KEY` and `LAST30DAYS_API_BASE` route a run through a config
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `schema_version` | string | Agent export contract version. The current version is `1.0`. |
+| `schema_version` | string | Agent export contract version. The current version is `1.2`. |
 | `query` | string | The research topic supplied to the engine. |
 | `generated_at` | string | UTC generation timestamp in RFC 3339 format. |
 | `window_days` | integer | Number of days between the report's start and end dates. |
 | `source_status` | object | Map of source name to the outcome observed during this run. |
+| `freshness_verdicts` | array | Per-claim act-time verdicts produced by `--verify-freshness`; empty when verification was not requested or no conservative claims were extractable. |
 | `clusters` | array | Ranked groups of related results. |
 | `results` | array | Ranked, flat evidence results for downstream processing. |
 
 All top-level fields are always present. Empty runs contain empty `clusters` and `results` arrays. Sources appear in `source_status` when the run recorded an outcome for them.
+
+## `freshness_verdicts`
+
+Each entry identifies the grounded claim and candidate, its primary source item, the typed `verdict` (`current`, `stale`, `contradicted`, or `unsupported`), the original and re-derived values when applicable, and source/evidence URLs and timestamps. `stale` means a successful point re-fetch returned a moved value; `contradicted` means a newer item in the report window explicitly disagrees; `unsupported` means the datum could not be re-checked, including degraded `source_status` outcomes. Consumers can gate actions on `verdict == "current"` without treating an unreachable source as evidence that a claim moved.
 
 ## `source_status`
 
@@ -81,6 +86,7 @@ Cluster array order is ranking order. A result's `cluster` value is the zero-bas
 
 | Field | Type | Meaning |
 | --- | --- | --- |
+| `candidate_id` | string | Stable identifier joining this result to `freshness_verdicts[].candidate_id`. Added in `1.2`. |
 | `title` | string | Result title. |
 | `source` | string | Primary source name, such as `reddit`, `x`, `youtube`, or `grounding`. |
 | `url` | string | Canonical result URL. It may be empty when the provider supplies no link. |
@@ -98,12 +104,12 @@ Comparison queries use an envelope so each entity keeps its own contract:
 
 ```json
 {
-  "schema_version": "1.0",
+  "schema_version": "1.2",
   "comparison": true,
   "entities": ["OpenAI", "Anthropic"],
   "reports": [
-    {"entity": "OpenAI", "report": {"schema_version": "1.0", "query": "OpenAI"}},
-    {"entity": "Anthropic", "report": {"schema_version": "1.0", "query": "Anthropic"}}
+    {"entity": "OpenAI", "report": {"schema_version": "1.2", "query": "OpenAI"}},
+    {"entity": "Anthropic", "report": {"schema_version": "1.2", "query": "Anthropic"}}
   ]
 }
 ```
@@ -115,7 +121,8 @@ The abbreviated reports above only illustrate the envelope; real reports contain
 - `schema_version` uses `major.minor` numbering.
 - Any breaking field removal, rename, type change, semantic change, or envelope change requires a major-version bump.
 - Backward-compatible field additions may use a minor-version bump. Consumers should ignore fields they do not recognize.
-- The checked-in golden snapshot test locks the complete `1.0` shape. Contract changes must update the version and snapshot deliberately.
+- The checked-in golden snapshot test locks the complete current shape. Contract changes must update the version and snapshot deliberately.
+- `1.2` added `candidate_id` to each `results` entry so verdicts can be joined to the result they annotate.
 - `--json-profile=raw` is outside this compatibility policy because it mirrors internal pipeline dataclasses.
 
 `--preflight --emit=json` is a different machine contract for permission and configuration inspection. `--json-profile` does not alter preflight output.

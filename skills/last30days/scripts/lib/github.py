@@ -17,7 +17,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional
 
-from . import dates, env, log
+from . import dates, env, http, log, schema
 from .query import extract_core_subject
 from .relevance import token_overlap_relevance
 
@@ -543,6 +543,45 @@ def _format_stars(n: int) -> str:
     if n >= 1_000:
         return f"{n / 1_000:.0f}K" if n >= 10_000 else f"{n / 1_000:.1f}K"
     return str(n)
+
+
+def refetch_datum(item: schema.SourceItem | None, datum_key: str) -> dict[str, Any]:
+    """Re-fetch one repository counter through the shared HTTP wrapper.
+
+    ``datum_key`` is either the literal ``"stars"`` (item-level claim; the
+    repo derives from the grounding item) or an ``owner/repo`` slug
+    (candidate-enrichment claim; the repo itself is the refetch subject and
+    the item is not consulted, so it may be ``None``).
+    """
+    if re.fullmatch(r"[^/\s]+/[^/\s]+", datum_key):
+        repo = datum_key
+    elif datum_key != "stars":
+        raise KeyError(f"Unsupported GitHub datum: {datum_key}")
+    else:
+        if item is None:
+            raise ValueError("Item-level star refetch requires the grounding item")
+        repo = item.container or ""
+        if not re.fullmatch(r"[^/\s]+/[^/\s]+", repo):
+            match = re.match(r"https?://github\.com/([^/]+/[^/#?]+)", item.url)
+            repo = match.group(1).removesuffix(".git") if match else ""
+        if not repo:
+            raise ValueError("GitHub item has no owner/repository reference")
+    headers = {"Accept": "application/vnd.github+json"}
+    token = _resolve_token()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    data = http.request(
+        "GET", f"https://api.github.com/repos/{repo}",
+        headers=headers, timeout=10, retries=2,
+    )
+    if not isinstance(data, dict) or not isinstance(data.get("stargazers_count"), int):
+        raise KeyError("GitHub star count was not returned")
+    fallback_url = item.url if item is not None else f"https://github.com/{repo}"
+    return {
+        "value": data["stargazers_count"],
+        "url": str(data.get("html_url") or fallback_url),
+        "timestamp": data.get("updated_at"),
+    }
 
 
 def search_github_person(
